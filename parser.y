@@ -7,7 +7,7 @@
 	assigned.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/24 22:49
+	Date: 2020/06/24 22:56
 */
 %{
 #include"symbolTable.hpp"
@@ -631,6 +631,7 @@ boolean_expression:	bool_expr
 						jasm << "L" << label_counter << ":\t\t";
 						jasm << "iconst_1\n";
 						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
 					}
 					if (strcmp($2, ">") == 0)
 					{
@@ -643,11 +644,60 @@ boolean_expression:	bool_expr
 						jasm << "L" << label_counter << ":\t\t";
 						jasm << "iconst_1\n";
 						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
 					}
-					if (strcmp($2, "<=") == 0) jasm << "ifle L" << label_counter << "\n";
-					if (strcmp($2, ">=") == 0) jasm << "ifge L" << label_counter << "\n";
-					if (strcmp($2, "==") == 0) jasm << "iadd L" << label_counter << "\n";
-					if (strcmp($2, "!=") == 0) jasm << "ifne L" << label_counter << "\n";
+					if (strcmp($2, "<=") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "ifle L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
+					}
+					if (strcmp($2, ">=") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "ifge L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
+					}
+					if (strcmp($2, "==") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "ifeq L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
+					}
+					if (strcmp($2, "!=") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "ifnq L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+						label_counter += 2;
+					}
 				}
 			}
 	;
