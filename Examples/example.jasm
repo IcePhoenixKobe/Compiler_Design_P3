@@ -19,14 +19,22 @@ class example
 		invokestatic int example.add(int, int)
 		putstatic int example.c
 		getstatic int example.c
+		sipush 10
+		isub
+		ifgt L1
+		iconst_0
+		goto L2
+L1:		iconst_1
+L2:		ifeq Lf
 		getstatic java.io.PrintStream java.lang.System.out
 		getstatic int example.c
 		ineg
 		invokevirtual void java.io.PrintStream.print(int)
-		getstatic java.io.PrintStream java.lang.System.out
+		goto Le
+Lf:		getstatic java.io.PrintStream java.lang.System.out
 		getstatic int example.c
 		invokevirtual void java.io.PrintStream.print(int)
-		getstatic java.io.PrintStream java.lang.System.out
+Le:		getstatic java.io.PrintStream java.lang.System.out
 		ldc "Hello World"
 		invokevirtual void java.io.PrintStream.println(java.lang.String)
 		return

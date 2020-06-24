@@ -1,9 +1,9 @@
 /*
 	file description: a lex file for course 
-	NTUST 2020 Spring Compiler Design Project2.
+	NTUST 2020 Spring Compiler Design Project3.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/02 22:50
+	Date: 2020/06/24 15:13
 */
 %{
 #include<iostream>

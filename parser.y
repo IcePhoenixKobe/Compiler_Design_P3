@@ -7,7 +7,7 @@
 	assigned.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/08 01:45
+	Date: 2020/06/24 22:49
 */
 %{
 #include"symbolTable.hpp"
@@ -535,10 +535,27 @@ statement:	ID	// single identifier, nothing to do
 			}
 	|	READ ID
 			{ if (lookup_id($2).name == "") Not_Declared(linenumber, $2); }
-	|	IF '(' boolean_expression ')' block_or_statement	//////
-	|	IF '(' boolean_expression ')' block_or_statement ELSE block_or_statement	//////
+	|	IF '(' boolean_expression ')' ifact block_or_statement
+			{ jasm << "Lf:"; }
+	|	IF '(' boolean_expression ')' ifact block_or_statement ELSE elseact block_or_statement
+			{ jasm << "Le:"; }
 	|	FOR '(' ID '<' '-' INT TO INT ')' block_or_statement//////
 	|	WHILE '(' boolean_expression ')' block_or_statement	//////
+	;
+
+ifact:
+	{
+		jasm_tab(cur_table->layer + 1);
+		jasm << "ifeq Lf\n";
+	}
+	;
+
+elseact:
+	{
+		jasm_tab(cur_table->layer + 1);
+		jasm << "goto Le\n";
+		jasm << "Lf:";
+	}
 	;
 
 expression_list:	expression
@@ -559,18 +576,19 @@ expression:	expression '+' expression	{ jasm_tab(cur_table->layer + 1); jasm << 
 	|		expression '%' expression	{ jasm_tab(cur_table->layer + 1); jasm << "irem\n"; }
 	|		'-' expression %prec UMINUS	{ jasm_tab(cur_table->layer + 1); jasm << "ineg\n"; $$ = $2; }
 	|		'(' expression ')'	{ $$ = $2; }
-	|		{ jasm_tab(cur_table->layer + 1); } data	{ $$ = $2; }	
+	|	{ jasm_tab(cur_table->layer + 1); }
+			data	{ $$ = $2; }	
 	|		ID
+		{
+			ident identifier = jasm_id($1);
+			if (identifier.name == "")
 			{
-				ident identifier = jasm_id($1);
-				if (identifier.name == "")
-				{
-					printf("Line %d: Error. Identifier \"%s\" was not declared\n", linenumber, $1);
-					exit(-1);
-				}
-				
-				$$ = identifier.data_type;
+				printf("Line %d: Error. Identifier \"%s\" was not declared\n", linenumber, $1);
+				exit(-1);
 			}
+	
+			$$ = identifier.data_type;
+		}
 	;
 
 boolean_expression:	bool_expr
@@ -587,26 +605,49 @@ boolean_expression:	bool_expr
 				if ($1 == $3) $$ = 5;
 				else Data_Type_Not_Match(linenumber, $1, $3);
 
-				if ($2 == "&&")
+				if (strcmp($2, "&&") == 0)
 				{
 					jasm_tab(cur_table->layer + 1);
 					jasm << "iand\n";
 				}
-				else if ($2 == "||")
+				else if (strcmp($2, "||") == 0)
 				{
 					jasm_tab(cur_table->layer + 1);
 					jasm << "ior\n";
 				}
 				else
 				{
-					/*jasm_tab(cur_table->layer + 1);
+					std::cout << "\t\t\t$2 = " << $2 << std::endl;
+					jasm_tab(cur_table->layer + 1);
 					jasm << "isub\n";
-					if ($2 == "<") jasm << "iflt\n";
-					if ($2 == ">") jasm << "ifgt\n";
-					if ($2 == "<=") jasm << "ifle\n";
-					if ($2 == ">=") jasm << "ifge\n";
-					if ($2 == "==") jasm << "iadd\n";
-					if ($2 == "!=") jasm << "ifne\n";*/
+					if (strcmp($2, "<") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iflt L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+					}
+					if (strcmp($2, ">") == 0)
+					{
+						jasm_tab(cur_table->layer + 1);
+						jasm << "ifgt L" << label_counter << "\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "iconst_0\n";
+						jasm_tab(cur_table->layer + 1);
+						jasm << "goto L" << label_counter + 1 << "\n";
+						jasm << "L" << label_counter << ":\t\t";
+						jasm << "iconst_1\n";
+						jasm << "L" << label_counter + 1 << ":";
+					}
+					if (strcmp($2, "<=") == 0) jasm << "ifle L" << label_counter << "\n";
+					if (strcmp($2, ">=") == 0) jasm << "ifge L" << label_counter << "\n";
+					if (strcmp($2, "==") == 0) jasm << "iadd L" << label_counter << "\n";
+					if (strcmp($2, "!=") == 0) jasm << "ifne L" << label_counter << "\n";
 				}
 			}
 	;
@@ -619,11 +660,11 @@ bool_expr:	'!' bool_expr	{ jasm_tab(cur_table->layer + 1); jasm << "ixor\n"; $$ 
 		if (identifier.name == "") Not_Declared(linenumber, $1);
 		else $$ = identifier.data_type;
 	}
-	|		INT				{ $$ = 1; }
+	|		INT				{ $$ = 1; jasm_tab(cur_table->layer + 1); jasm << "sipush " << $1 << "\n"; }
 	|		CHAR			{ $$ = 2; }
 	|		FLOAT			{ $$ = 3; }
-	|		TRUE			{ $$ = 5; }
-	|		FALSE			{ $$ = 5; }
+	|		TRUE			{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_1" << "\n"; }
+	|		FALSE			{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_0" << "\n"; }
 	;
 
 biop:	BIOP
@@ -648,11 +689,11 @@ type:	INT		{ $$ = 1; }
 	;
 
 data:	INT		{ $$ = 1; jasm << "sipush " << $1 << "\n"; }
-	|	CHAR		{ $$ = 2; }
-	|	FLOAT		{ $$ = 3; }
+	|	CHAR	{ $$ = 2; }
+	|	FLOAT	{ $$ = 3; }
 	|	STRING	{ $$ = 4; jasm << "ldc \"" << $1 << "\"\n"; }
-	|	TRUE		{ $$ = 5; jasm << "iconst_1" << "\n"; }
-	|	FALSE		{ $$ = 6; jasm << "iconst_0" << "\n"; }
+	|	TRUE	{ $$ = 5; jasm << "iconst_1" << "\n"; }
+	|	FALSE	{ $$ = 6; jasm << "iconst_0" << "\n"; }
 	;
 
 %%
