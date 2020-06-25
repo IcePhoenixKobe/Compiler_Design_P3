@@ -7,7 +7,7 @@
 	assigned.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/24 22:56
+	Date: 2020/06/25 16:14
 */
 %{
 #include"symbolTable.hpp"
@@ -37,7 +37,7 @@ extern "C" {
 };
 
 /* tokens */
-%token <s_value> ID BIOP
+%token <s_value> ID BIOP AANDD OORR
 /* reversed words */
 %token BREAK CASE CLASS CONTINUE DEF DO ELSE EXIT FOR IF NULL_SCALA OBJECT PRINT PRINTLN READ REPEAT RETURN TO TYPE VAL VAR WHILE TRUE FALSE
 /* data type */
@@ -49,14 +49,14 @@ extern "C" {
 
 /* Nonterminals */
 %type <type> data type
-%type <type> expression_list expression boolean_expression bool_expr var_assign
+%type <type> expression_list expression boolean_expression bool_data var_assign
 %type <i_value> par parameter
 %type <s_value> biop
 
 /* Operators */
 %left '(' ')'
-%left "||"
-%left "&&"
+%left OORR
+%left AANDD
 %left '!'
 %left '<' "<=" "==" "=>" '>' "!="
 %left '+' '-'
@@ -536,9 +536,17 @@ statement:	ID	// single identifier, nothing to do
 	|	READ ID
 			{ if (lookup_id($2).name == "") Not_Declared(linenumber, $2); }
 	|	IF '(' boolean_expression ')' ifact block_or_statement
-			{ jasm << "Lf:"; }
+			{
+				jasm_tab(cur_table->layer);
+				jasm << "Lf" << ifelse_counter << ":\n";
+				ifelse_counter++;
+			}
 	|	IF '(' boolean_expression ')' ifact block_or_statement ELSE elseact block_or_statement
-			{ jasm << "Le:"; }
+			{
+				jasm_tab(cur_table->layer);
+				jasm << "Le" << ifelse_counter << ":\n";
+				ifelse_counter += 2;
+			}
 	|	FOR '(' ID '<' '-' INT TO INT ')' block_or_statement//////
 	|	WHILE '(' boolean_expression ')' block_or_statement	//////
 	;
@@ -546,15 +554,16 @@ statement:	ID	// single identifier, nothing to do
 ifact:
 	{
 		jasm_tab(cur_table->layer + 1);
-		jasm << "ifeq Lf\n";
+		jasm << "ifeq Lf" << ifelse_counter << "\n";
 	}
 	;
 
 elseact:
 	{
 		jasm_tab(cur_table->layer + 1);
-		jasm << "goto Le\n";
-		jasm << "Lf:";
+		jasm << "goto Le" << ifelse_counter << "\n";
+		jasm_tab(cur_table->layer);
+		jasm << "Lf" << ifelse_counter << ":\n";
 	}
 	;
 
@@ -591,130 +600,96 @@ expression:	expression '+' expression	{ jasm_tab(cur_table->layer + 1); jasm << 
 		}
 	;
 
-boolean_expression:	bool_expr
+boolean_expression:	bool_data
+		{
+			if ($$ != 5)
 			{
-				if ($$ != 5)
-				{
-					printf("Line %d: Error: expression must be ‘bool‘ type\n", linenumber);
-					exit(-1);
-				}
+				printf("Line %d: Error: expression must be ‘bool‘ type\n", linenumber);
+				exit(-1);
+			}
 				else $$ = 5;
-			}
-	|				bool_expr biop bool_expr	
-			{
-				if ($1 == $3) $$ = 5;
-				else Data_Type_Not_Match(linenumber, $1, $3);
+		}
+	|				'!' boolean_expression
+		{
+			jasm_tab(cur_table->layer + 1);
+			jasm << "iconst_1\n";
+			jasm_tab(cur_table->layer + 1);
+			jasm << "ixor\n";
+			$$ = $2;
+		}
+	|				'(' boolean_expression ')'	{ $$ = $2; }		
+	|				boolean_expression AANDD boolean_expression
+		{
+			jasm_tab(cur_table->layer + 1);
+			jasm << "iand\n";
+		}
+	|				boolean_expression OORR boolean_expression
+		{
+			jasm_tab(cur_table->layer + 1);
+			jasm << "ior\n";
+		}
+	|		bool_data biop bool_data
+		{
+			if ($1 == $3) $$ = 5;
+			else Data_Type_Not_Match(linenumber, $1, $3);
 
-				if (strcmp($2, "&&") == 0)
-				{
-					jasm_tab(cur_table->layer + 1);
-					jasm << "iand\n";
-				}
-				else if (strcmp($2, "||") == 0)
-				{
-					jasm_tab(cur_table->layer + 1);
-					jasm << "ior\n";
-				}
-				else
-				{
-					std::cout << "\t\t\t$2 = " << $2 << std::endl;
-					jasm_tab(cur_table->layer + 1);
-					jasm << "isub\n";
-					if (strcmp($2, "<") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iflt L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-					if (strcmp($2, ">") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "ifgt L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-					if (strcmp($2, "<=") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "ifle L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-					if (strcmp($2, ">=") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "ifge L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-					if (strcmp($2, "==") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "ifeq L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-					if (strcmp($2, "!=") == 0)
-					{
-						jasm_tab(cur_table->layer + 1);
-						jasm << "ifnq L" << label_counter << "\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "iconst_0\n";
-						jasm_tab(cur_table->layer + 1);
-						jasm << "goto L" << label_counter + 1 << "\n";
-						jasm << "L" << label_counter << ":\t\t";
-						jasm << "iconst_1\n";
-						jasm << "L" << label_counter + 1 << ":";
-						label_counter += 2;
-					}
-				}
+			jasm_tab(cur_table->layer + 1);
+			jasm << "isub\n";
+			if (strcmp($2, "<") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "iflt L" << label_counter << "\n";
 			}
+			if (strcmp($2, ">") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifgt L" << label_counter << "\n";
+			}
+			if (strcmp($2, "<=") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifle L" << label_counter << "\n";
+			}
+			if (strcmp($2, ">=") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifge L" << label_counter << "\n";
+			}
+			if (strcmp($2, "==") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifeq L" << label_counter << "\n";
+			}
+			if (strcmp($2, "!=") == 0)
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifne L" << label_counter << "\n";
+			}
+			jasm_tab(cur_table->layer + 1);
+			jasm << "iconst_0\n";
+			jasm_tab(cur_table->layer + 1);
+			jasm << "goto L" << label_counter + 1 << "\n";			
+			jasm_tab(cur_table->layer);
+			jasm << "L" << label_counter << ":\n";
+			jasm_tab(cur_table->layer + 1);
+			jasm << "iconst_1\n";
+			jasm_tab(cur_table->layer);
+			jasm << "L" << label_counter + 1 << ":\n";
+			label_counter += 2;
+		}
 	;
 
-bool_expr:	'!' bool_expr	{ jasm_tab(cur_table->layer + 1); jasm << "ixor\n"; $$ = $2; }
-	|		'(' boolean_expression ')'	{ $$ = $2; }
-	|		ID
-	{
-		ident identifier = jasm_id($1);
-		if (identifier.name == "") Not_Declared(linenumber, $1);
-		else $$ = identifier.data_type;
-	}
-	|		INT				{ $$ = 1; jasm_tab(cur_table->layer + 1); jasm << "sipush " << $1 << "\n"; }
-	|		CHAR			{ $$ = 2; }
-	|		FLOAT			{ $$ = 3; }
-	|		TRUE			{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_1" << "\n"; }
-	|		FALSE			{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_0" << "\n"; }
+bool_data:	ID
+		{
+			ident identifier = jasm_id($1);
+			if (identifier.name == "") Not_Declared(linenumber, $1);
+			else $$ = identifier.data_type;
+		}
+	|		INT		{ $$ = 1; jasm_tab(cur_table->layer + 1); jasm << "sipush " << $1 << "\n"; }
+	|		CHAR	{ $$ = 2; }
+	|		FLOAT	{ $$ = 3; }
+	|		TRUE	{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_1" << "\n"; }
+	|		FALSE	{ $$ = 5; jasm_tab(cur_table->layer + 1); jasm << "iconst_0" << "\n"; }
 	;
 
 biop:	BIOP

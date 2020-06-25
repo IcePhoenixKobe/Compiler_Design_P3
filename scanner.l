@@ -3,7 +3,7 @@
 	NTUST 2020 Spring Compiler Design Project3.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/24 15:13
+	Date: 2020/06/25 08:35
 */
 %{
 #include<iostream>
@@ -129,8 +129,8 @@ ws		[ \t]+
 ">="	{ token(">="); yylval.s_value = strdup(">="); return(BIOP); }
 "=="	{ token("=="); yylval.s_value = strdup("=="); return(BIOP); }
 "!="	{ token("!="); yylval.s_value = strdup("!="); return(BIOP); }
-"&&"	{ token("&&"); yylval.s_value = strdup("&&"); return(BIOP); }
-"||"	{ token("||"); yylval.s_value = strdup("||"); return(BIOP); }
+"&&"	{ token("&&"); yylval.s_value = strdup("&&"); return(AANDD); }
+"||"	{ token("||"); yylval.s_value = strdup("||"); return(OORR); }
 "!"		{ token('!'); return('!'); }
 
 	/* Reversed words */
