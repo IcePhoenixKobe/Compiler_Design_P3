@@ -7,7 +7,7 @@
 	assigned.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/25 16:14
+	Date: 2020/06/26 13:32
 */
 %{
 #include"symbolTable.hpp"
@@ -533,6 +533,7 @@ statement:	ID	// single identifier, nothing to do
 					jasm << "invokevirtual void java.io.PrintStream.println(java.lang.String)\n";
 				}
 			}
+/*NO read in project3*/
 	|	READ ID
 			{ if (lookup_id($2).name == "") Not_Declared(linenumber, $2); }
 	|	IF '(' boolean_expression ')' ifact block_or_statement
@@ -548,7 +549,24 @@ statement:	ID	// single identifier, nothing to do
 				ifelse_counter += 2;
 			}
 	|	FOR '(' ID '<' '-' INT TO INT ')' block_or_statement//////
-	|	WHILE '(' boolean_expression ')' block_or_statement	//////
+	|	WHILE 
+			{
+				jasm_tab(cur_table->layer);
+				jasm << "Lb" << while_counter << ":\n";
+			}
+		'(' boolean_expression ')' 
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifeq Lx" << while_counter << "\n";
+			}
+		block_or_statement
+			{
+				jasm_tab(cur_table->layer + 1);
+				jasm << "goto Lb" << while_counter << "\n";
+				jasm_tab(cur_table->layer);
+				jasm << "Lx" << while_counter << ":\n";
+				while_counter++;
+			}
 	;
 
 ifact:
@@ -635,36 +653,13 @@ boolean_expression:	bool_data
 
 			jasm_tab(cur_table->layer + 1);
 			jasm << "isub\n";
-			if (strcmp($2, "<") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "iflt L" << label_counter << "\n";
-			}
-			if (strcmp($2, ">") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "ifgt L" << label_counter << "\n";
-			}
-			if (strcmp($2, "<=") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "ifle L" << label_counter << "\n";
-			}
-			if (strcmp($2, ">=") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "ifge L" << label_counter << "\n";
-			}
-			if (strcmp($2, "==") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "ifeq L" << label_counter << "\n";
-			}
-			if (strcmp($2, "!=") == 0)
-			{
-				jasm_tab(cur_table->layer + 1);
-				jasm << "ifne L" << label_counter << "\n";
-			}
+			jasm_tab(cur_table->layer + 1);
+			if (strcmp($2, "<") == 0) jasm << "iflt L" << label_counter << "\n";
+			if (strcmp($2, ">") == 0) jasm << "ifgt L" << label_counter << "\n";
+			if (strcmp($2, "<=") == 0) jasm << "ifle L" << label_counter << "\n";
+			if (strcmp($2, ">=") == 0) jasm << "ifge L" << label_counter << "\n";
+			if (strcmp($2, "==") == 0) jasm << "ifeq L" << label_counter << "\n";
+			if (strcmp($2, "!=") == 0) jasm << "ifne L" << label_counter << "\n";
 			jasm_tab(cur_table->layer + 1);
 			jasm << "iconst_0\n";
 			jasm_tab(cur_table->layer + 1);

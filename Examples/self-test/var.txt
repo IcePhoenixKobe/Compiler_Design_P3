@@ -1,5 +1,0 @@
-var a
-var s : string
-var i = 10
-var d : float
-var b: boolean = false

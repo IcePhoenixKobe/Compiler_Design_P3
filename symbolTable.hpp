@@ -3,7 +3,7 @@
 	NTUST 2020 Spring Compiler Design Project3.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/25 16:15
+	Date: 2020/06/26 13:17
 */
 #ifndef SYMBOLTABLE_HPP
 #define SYMBOLTABLE_HPP
@@ -53,6 +53,7 @@ ofstream jasm;
 int num_arg = 0;
 int label_counter = 1;
 int ifelse_counter = 1;
+int while_counter = 1;
 STable * head = nullptr;
 STable * cur_table = head;
 STable * temp_table = nullptr;
