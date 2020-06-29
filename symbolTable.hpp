@@ -3,7 +3,7 @@
 	NTUST 2020 Spring Compiler Design Project3.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/26 13:17
+	Date: 2020/06/29 18:32
 */
 #ifndef SYMBOLTABLE_HPP
 #define SYMBOLTABLE_HPP
@@ -54,6 +54,8 @@ int num_arg = 0;
 int label_counter = 1;
 int ifelse_counter = 1;
 int while_counter = 1;
+int for_counter = 1;
+bool inc_dec = false;
 STable * head = nullptr;
 STable * cur_table = head;
 STable * temp_table = nullptr;

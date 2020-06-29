@@ -1,8 +1,8 @@
 object multi_boolean {
-  var a
-  var b
-  var c
-  var d
+  var a: int
+  var b: int
+  var c: int
+  var d: int
   def main()
   {
     a = 1

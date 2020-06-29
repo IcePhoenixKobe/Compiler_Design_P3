@@ -1,6 +1,6 @@
 object var_val {
   val a = 1
-  var b = 95
+  var b
 
   // main statements
   def main()

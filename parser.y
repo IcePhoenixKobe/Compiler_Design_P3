@@ -7,7 +7,7 @@
 	assigned.
 
 	coder: Kobe (LIN GENG-SHEN)
-	Date: 2020/06/26 13:32
+	Date: 2020/06/29 18:32
 */
 %{
 #include"symbolTable.hpp"
@@ -548,7 +548,54 @@ statement:	ID	// single identifier, nothing to do
 				jasm << "Le" << ifelse_counter << ":\n";
 				ifelse_counter += 2;
 			}
-	|	FOR '(' ID '<' '-' INT TO INT ')' block_or_statement//////
+	|	FOR '(' ID '<' '-' INT TO INT ')'
+			{
+				if ($6 > $8) inc_dec = false;
+				else inc_dec = true;
+				jasm_tab(cur_table->layer + 1);
+				jasm << "sipush " << $6 << "\n";
+				ident identifier = jasm_left_id($3);
+				jasm_tab(cur_table->layer);
+				jasm << "Lfor" << for_counter << ":\n";
+				identifier = jasm_id($3);
+				jasm_tab(cur_table->layer + 1);
+				jasm << "sipush " << $8 << "\n";
+				jasm_tab(cur_table->layer + 1);
+				jasm << "isub\n";
+				jasm_tab(cur_table->layer + 1);
+				if (inc_dec) jasm << "ifle Lrof" << for_counter << "\n";	// increase
+				else jasm << "ifge Lrof" << for_counter << "\n";			// decrease
+				jasm_tab(cur_table->layer + 1);
+				jasm << "iconst_0\n";
+				jasm_tab(cur_table->layer + 1);
+				jasm << "goto Lrof" << for_counter + 1 << "\n";
+				jasm_tab(cur_table->layer);
+				jasm << "Lrof" << for_counter << ":\n";
+				jasm_tab(cur_table->layer + 1);
+				jasm << "iconst_1\n";
+				jasm_tab(cur_table->layer);
+				jasm << "Lrof" << for_counter + 1 << ":\n";
+				jasm_tab(cur_table->layer + 1);
+				jasm << "ifeq Lfor" << for_counter + 1 << "\n";
+			}
+		block_or_statement
+			{
+				jasm << "\n";
+				jasm_tab(cur_table->layer);
+				ident identifier = jasm_id($3);
+				jasm_tab(cur_table->layer + 2);
+				jasm << "sipush 1\n";
+				jasm_tab(cur_table->layer + 2);
+				if (inc_dec) jasm << "iadd\n";	// increase
+				else jasm << "isub\n";			// decrease
+				jasm_tab(cur_table->layer);
+				identifier = jasm_left_id($3);
+				jasm_tab(cur_table->layer + 1);
+				jasm << "goto Lfor" << for_counter << "\n";
+				jasm_tab(cur_table->layer);
+				jasm << "Lfor" << for_counter + 1 << ":\n";
+				for_counter += 2;
+			}
 	|	WHILE 
 			{
 				jasm_tab(cur_table->layer);
@@ -663,7 +710,7 @@ boolean_expression:	bool_data
 			jasm_tab(cur_table->layer + 1);
 			jasm << "iconst_0\n";
 			jasm_tab(cur_table->layer + 1);
-			jasm << "goto L" << label_counter + 1 << "\n";			
+			jasm << "goto L" << label_counter + 1 << "\n";
 			jasm_tab(cur_table->layer);
 			jasm << "L" << label_counter << ":\n";
 			jasm_tab(cur_table->layer + 1);
