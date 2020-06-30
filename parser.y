@@ -612,6 +612,7 @@ statement:	ID	// single identifier, nothing to do
 				jasm << "goto Lb" << while_counter << "\n";
 				jasm_tab(cur_table->layer);
 				jasm << "Lx" << while_counter << ":\n";
+				jasm << "nop\n";
 				while_counter++;
 			}
 	;

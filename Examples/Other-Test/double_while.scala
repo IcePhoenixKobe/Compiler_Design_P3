@@ -3,22 +3,26 @@
  * Compute sum = 1 + 2 + ... + n
  */
 
-object For
+object double_while
 {
   // constants and variables
+  val n = 10
   var sum: int
   var index: int
 
   def main () {
     sum = 0
+    index = 0
     
-    for (index <- 0 to 100) {
+    while (index <= n) {
       sum = sum + index
+      index = index + 1
     }
-    for (index <- 100 to 0) {
-      sum = sum - index
+    while (index <= n) {
+      sum = sum + index
+      index = index + 1
     }
-    print ("The sum2 is ")
+    print ("The sum is ")
     println (sum)
   }
 }
